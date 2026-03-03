@@ -1,0 +1,189 @@
+[
+  {
+    "id": "bal_01",
+    "category": "balance",
+    "description": "Simple balance query in Korean",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "voice", "text": "잔액이 얼마야?" }
+    ],
+    "expected": {
+      "tools_used_includes": ["get_account_balance"],
+      "tts_contains_any": ["잔액", "원"],
+      "approval_required": false
+    }
+  },
+  {
+    "id": "bal_02",
+    "category": "balance",
+    "description": "Balance query with polite formal phrasing",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "voice", "text": "현재 계좌 잔액을 알려주세요." }
+    ],
+    "expected": {
+      "tools_used_includes": ["get_account_balance"],
+      "tts_contains_any": ["잔액", "원"],
+      "approval_required": false
+    }
+  },
+  {
+    "id": "bal_03",
+    "category": "balance",
+    "description": "Balance query in English",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "voice", "text": "What is my account balance?" }
+    ],
+    "expected": {
+      "tools_used_includes": ["get_account_balance"],
+      "tts_nonempty": true,
+      "approval_required": false
+    }
+  },
+  {
+    "id": "txn_01",
+    "category": "transactions",
+    "description": "Recent transactions list in Korean",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "voice", "text": "최근 거래 내역 보여줘" }
+    ],
+    "expected": {
+      "tools_used_includes": ["get_recent_transactions"],
+      "mode_after": "reading_transactions",
+      "next_controls_includes": ["NEXT"],
+      "approval_required": false
+    }
+  },
+  {
+    "id": "txn_02",
+    "category": "transactions",
+    "description": "Specific count transaction query",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "voice", "text": "최근 3건 거래 내역 알려줘" }
+    ],
+    "expected": {
+      "tools_used_includes": ["get_recent_transactions"],
+      "mode_after": "reading_transactions",
+      "approval_required": false
+    }
+  },
+  {
+    "id": "txn_03",
+    "category": "transactions",
+    "description": "Load transactions then navigate NEXT twice",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "voice",   "text": "거래 내역 불러줘" },
+      { "input_type": "control", "event": "NEXT" },
+      { "input_type": "control", "event": "NEXT" }
+    ],
+    "expected": {
+      "turn_0": { "tools_used_includes": ["get_recent_transactions"] },
+      "turn_1": { "haptics_pattern": "ITEM_TICK", "tts_contains_any": ["번째 거래"] },
+      "turn_2": { "haptics_pattern": "ITEM_TICK", "tts_contains_any": ["번째 거래"] }
+    }
+  },
+  {
+    "id": "transfer_01",
+    "category": "transfer",
+    "description": "Transfer intent then CONFIRM — full happy path",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "voice",   "text": "110-123-456789 계좌에 50000원 보내줘" },
+      { "input_type": "control", "event": "CONFIRM" }
+    ],
+    "expected": {
+      "turn_0": {
+        "tools_used_includes": ["transfer_funds"],
+        "approval_required": true,
+        "next_controls_includes": ["CONFIRM"]
+      },
+      "turn_1": {
+        "haptics_pattern": "SUCCESS_DOUBLE",
+        "approval_required": false,
+        "tts_contains_any": ["완료", "보냈습니다"]
+      }
+    }
+  },
+  {
+    "id": "transfer_02",
+    "category": "transfer",
+    "description": "Transfer intent then CANCEL — should abort cleanly",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "voice",   "text": "계좌번호 110-777-888999에 10만원 이체해줘" },
+      { "input_type": "control", "event": "CANCEL" }
+    ],
+    "expected": {
+      "turn_0": {
+        "tools_used_includes": ["transfer_funds"],
+        "approval_required": true
+      },
+      "turn_1": {
+        "haptics_pattern": "CANCEL_BUZZ",
+        "approval_required": false,
+        "tts_contains_any": ["취소"]
+      }
+    }
+  },
+  {
+    "id": "transfer_03",
+    "category": "transfer",
+    "description": "Transfer request alone — must NOT execute, approval_required must be true",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "voice", "text": "200000원 110-222-333444에 송금해줘" }
+    ],
+    "expected": {
+      "tools_used_includes": ["transfer_funds"],
+      "approval_required": true,
+      "next_controls_includes": ["CONFIRM"],
+      "tts_contains_any": ["확인", "승인", "CONFIRM", "확정", "버튼", "이체"]
+    }
+  },
+  {
+    "id": "edge_01",
+    "category": "edge_case",
+    "description": "NEXT button when no transactions loaded — graceful error",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "control", "event": "NEXT" }
+    ],
+    "expected": {
+      "haptics_pattern": "ERROR_BUZZ",
+      "tts_nonempty": true,
+      "tts_contains_any": ["없습니다", "조회"]
+    }
+  },
+  {
+    "id": "edge_02",
+    "category": "edge_case",
+    "description": "CONFIRM when no pending transfer — graceful error",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "control", "event": "CONFIRM" }
+    ],
+    "expected": {
+      "haptics_pattern": "ERROR_BUZZ",
+      "tts_nonempty": true,
+      "approval_required": false
+    }
+  },
+  {
+    "id": "edge_03",
+    "category": "edge_case",
+    "description": "Off-topic input — agent should respond gracefully without banking tools",
+    "user_id": "u_001",
+    "turns": [
+      { "input_type": "voice", "text": "오늘 날씨 어때?" }
+    ],
+    "expected": {
+      "tts_nonempty": true,
+      "approval_required": false,
+      "tools_used_excludes": ["transfer_funds"]
+    }
+  }
+]
